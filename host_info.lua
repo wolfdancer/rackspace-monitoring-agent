@@ -21,7 +21,7 @@ local fs = require('fs')
 local misc = require('/util/misc')
 local os = require('os')
 local table = require('table')
-local vutils = require('virgo_utils')
+local utile = require('utile')
 
 local sigarCtx = require('/sigar').ctx
 local sigarutil = require('/util/sigar')
@@ -35,7 +35,7 @@ end
 function HostInfo:serialize()
   return {
     metrics = self._params,
-    timestamp = vutils.gmtNow()
+    timestamp = utile.gmtNow()
   }
 end
 

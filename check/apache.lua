@@ -25,6 +25,7 @@ local url = require('url')
 local http = require('http')
 local https = require('https')
 local Error = require('core').Error
+local utile = require('utile')
 
 local fmt = require('string').format
 
@@ -91,8 +92,8 @@ function ApacheCheck:_parseLine(line, checkResult)
   local f = line:sub(0, i-1)
   local v = line:sub(i+1, #line)
 
-  f = misc.trim(f:gsub(" ", "_"))
-  v = misc.trim(v)
+  f = utile.trim(f:gsub(" ", "_"))
+  v = utile.trim(v)
 
   local metrics = {
     ['Total_Accesses'] = {
@@ -171,7 +172,7 @@ function ApacheCheck:_parse(data, checkResult)
 end
 
 function ApacheCheck:run(callback)
-  callback = misc.fireOnce(callback)
+  callback = utile.fireOnce(callback)
   local checkResult = CheckResult:new(self, {})
   local protocol = self._parsed.protocol == 'http' and http or https
   local req = protocol.request(self._parsed, function(res)

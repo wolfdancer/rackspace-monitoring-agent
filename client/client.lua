@@ -28,7 +28,7 @@ local loggingUtil = require ('../util/logging')
 local ProtocolConnection = require('/protocol/connection')
 local table = require('table')
 local caCerts = require('../certs').caCerts
-local vutils = require('virgo_utils')
+local utile = require('utile')
 
 local ConnectionStateMachine = require('./connection_statemachine').ConnectionStateMachine
 
@@ -183,7 +183,7 @@ function AgentClient:startHeartbeatInterval()
 
     function timerCb()
       local timestamp = Timer.now()
-      local send_timestamp = vutils.gmtRaw()
+      local send_timestamp = utile.gmtRaw()
 
       if this:isDestroyed() then
         return
@@ -203,7 +203,7 @@ function AgentClient:startHeartbeatInterval()
           return
         end
 
-        local recv_timestamp = vutils.gmtRaw()
+        local recv_timestamp = utile.gmtRaw()
         this._latency = Timer.now() - timestamp
         if msg.result.timestamp then
           local timeObj = {}

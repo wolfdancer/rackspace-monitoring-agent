@@ -26,16 +26,16 @@ local logging = require('logging')
 local os = require('os')
 local table = require('table')
 local timer = require('timer')
-local vutils = require('virgo_utils')
+local utile = require('utile')
 local utils = require('utils')
 local path = require('path')
 
 local constants = require('../util/constants')
 local loggingUtil = require('../util/logging')
-local tableContains = require('../util/misc').tableContains
-local toString = require('../util/misc').toString
-local lastIndexOf = require('../util/misc').lastIndexOf
-local split = require('../util/misc').split
+local tableContains = require('utile').tableContains
+local toString = require('utile').toString
+local lastIndexOf = require('utile').lastIndexOf
+local split = require('utile').split
 local randstr = require('../util/misc').randstr
 local asserts = require('bourbon').asserts
 
@@ -552,7 +552,7 @@ function CheckResult:initialize(check, options)
   self._status = DEFAULT_STATUS
   self._check = check
   self:setTimestamp(self._options.timestamp)
-  self._timestamp = vutils.gmtNow()
+  self._timestamp = utile.gmtNow()
 end
 
 function CheckResult:getTimestamp()
@@ -560,7 +560,7 @@ function CheckResult:getTimestamp()
 end
 
 function CheckResult:setTimestamp(timestamp)
-  self._timestamp = timestamp or vutils.gmtNow()
+  self._timestamp = timestamp or utile.gmtNow()
   return self._timestamp
 end
 

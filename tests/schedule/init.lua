@@ -26,6 +26,7 @@ local ChildCheck = require('/check/base').ChildCheck
 local NullCheck = require('/check/null').NullCheck
 local Check = require('/check')
 local misc = require('/util/misc')
+local utile = require('utile')
 
 local PluginCheck = Check.PluginCheck
 
@@ -88,7 +89,7 @@ exports['test_scheduler_adds'] = function(test, asserts)
     end,
     function(callback)
       local count = 0
-      callback = misc.fireOnce(callback)
+      callback = utile.fireOnce(callback)
       scheduler:rebuild(new_checks)
       scheduler:on('check.completed', function()
         count = count + 1
@@ -108,7 +109,7 @@ end
 exports['test_scheduler_timeout'] = function(test, asserts)
   local scheduler
   local checks
-  local done = misc.fireOnce(function()
+  local done = utile.fireOnce(function()
     scheduler:stop()
     test.done()
   end)
@@ -141,7 +142,7 @@ exports['test_scheduler_custom_check_reload'] = function(test, asserts)
       process.nextTick(callback)
     end,
     function(callback)
-      callback = misc.fireOnce(callback)
+      callback = utile.fireOnce(callback)
       scheduler:on('check.completed', function()
         callback()
       end)

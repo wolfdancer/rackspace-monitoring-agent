@@ -19,9 +19,9 @@ no = {}
 
 local fs = require('fs')
 local Uuid = require('/util/uuid')
-local splitAddress = require('/util/misc').splitAddress
+local splitAddress = require('utile').splitAddress
 local writePid = require('/util/misc').writePid
-local lastIndexOf = require('/util/misc').lastIndexOf
+local lastIndexOf = require('utile').lastIndexOf
 local compareVersions = require('/util/misc').compareVersions
 
 exports['test_uuid_generation'] = function(test, asserts)

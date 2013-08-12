@@ -26,6 +26,7 @@ local run = require('monitoring/collector').run
 local request = require('monitoring/collector/http/utils').request
 local setTimeout = require('timer').setTimeout
 local misc = require('monitoring/default/util/misc')
+local utile = require('utile')
 
 local exports = {}
 
@@ -34,7 +35,7 @@ local function testForTraceroute(callback)
   local stderr = ""
   local exit_code = nil
 
-  callback = misc.fireOnce(callback)
+  callback = utile.fireOnce(callback)
 
   -- true if we take this long before hitting stderr or stdout
   local function callTrueLater()

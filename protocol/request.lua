@@ -23,6 +23,8 @@ local errors = require('../errors')
 local Error = require('core').Error
 local misc = require('../util/misc')
 
+local utile = require('utile')
+
 local fmt = require('string').format
 local Object = require('core').Object
 
@@ -53,7 +55,7 @@ local function makeRequest(...)
 end
 
 function Request:initialize(options, callback)
-  self.callback = misc.fireOnce(callback)
+  self.callback = utile.fireOnce(callback)
 
   if not options.method then
     return self.callback(Error:new('I need a http method'))

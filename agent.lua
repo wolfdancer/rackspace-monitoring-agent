@@ -25,6 +25,7 @@ local table = require('table')
 local Object = require('core').Object
 local fmt = require('string').format
 local Emitter = require('core').Emitter
+local utile = require('utile')
 
 local async = require('async')
 local sigarCtx = require('/sigar').ctx
@@ -269,7 +270,7 @@ function Agent:loadEndpoints(callback)
       return v == snetregion
     end
 
-    if not misc.tableContains(matcher, constants.VALID_SNET_REGION_NAMES) then
+    if not utile.tableContains(matcher, constants.VALID_SNET_REGION_NAMES) then
       logging.errorf("Invalid configuration: snet_region '%s' is not supported.", snetregion)
       process.exit(1)
     end
@@ -284,11 +285,11 @@ function Agent:loadEndpoints(callback)
 
     return self:_queryForEndpoints(domains, _callback)
   elseif queries and not endpoints then
-    local domains = misc.split(queries, '[^,]+')
+    local domains = utile.split(queries, '[^,]+')
     return self:_queryForEndpoints(domains, _callback)
   end
   -- split address,address,address
-  endpoints = misc.split(endpoints, '[^,]+')
+  endpoints = utile.split(endpoints, '[^,]+')
 
   if #endpoints == 0 then
     logging.error("at least one endpoint needs to be specified")
@@ -349,7 +350,7 @@ function Agent:_getPersistentVariable(variable, callback)
       callback(err)
       return
     end
-    callback(nil, misc.trim(data))
+    callback(nil, utile.trim(data))
   end)
 end
 

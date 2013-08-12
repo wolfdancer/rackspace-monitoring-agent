@@ -20,12 +20,13 @@ local async = require('async')
 local dns = require('dns')
 local math = require('math')
 local logging = require('logging')
+local utile = require('utile')
 
 local Endpoint = Object:extend()
 
 function Endpoint:initialize(host, port, srv_query)
   if not port and host then
-    ip_and_port = misc.splitAddress(host)
+    ip_and_port = utile.splitAddress(host)
     host = ip_and_port[1]
     port = ip_and_port[2]
   end

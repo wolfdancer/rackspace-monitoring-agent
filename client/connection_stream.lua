@@ -29,7 +29,7 @@ local AgentClient = require('./client').AgentClient
 local logging = require('logging')
 local consts = require('/util/constants')
 local misc = require('/util/misc')
-local vutils = require('virgo_utils')
+local utile = require('utile')
 local path = require('path')
 local utils = require('utils')
 local request = require('/protocol/request')
@@ -86,13 +86,13 @@ function ConnectionStream:_onUpgrade()
   }
 
   uri_path = fmt('/upgrades/%s/VERSION', self._channel)
-  options = misc.merge({ path = uri_path, }, options)
+  options = utile.merge({ path = uri_path, }, options)
   request.makeRequest(options, function(err, result, version)
     if err then
       client:log(logging.ERROR, 'Error on upgrade: ' .. tostring(err))
       return
     end
-    version = misc.trim(version)
+    version = utile.trim(version)
     client:log(logging.DEBUG, fmt('(upgrade) -> Current Version: %s', bundleVersion))
     client:log(logging.DEBUG, fmt('(upgrade) -> Upstream Version: %s', version))
     if version == '0.0.0-0' then
@@ -126,8 +126,8 @@ established.
 --]]
 function ConnectionStream:createConnections(endpoints, callback)
   local iter = function(endpoint, callback)
-    local baseOptions = misc.merge({}, self._options)
-    local options = misc.merge(baseOptions, {
+    local baseOptions = utile.merge({}, self._options)
+    local options = utile.merge(baseOptions, {
       endpoint = endpoint,
       id = self._id,
       datacenter = tostring(endpoint),
@@ -322,7 +322,7 @@ function ConnectionStream:_attachTimeSyncEvent(client)
     return
   end
   client:on('time_sync', function(timeObj)
-    vutils.timesync(timeObj.agent_send_timestamp, timeObj.server_receive_timestamp,
+    utile.timesync(timeObj.agent_send_timestamp, timeObj.server_receive_timestamp,
                    timeObj.server_response_timestamp, timeObj.agent_recv_timestamp)
   end)
 end
@@ -348,7 +348,7 @@ port - Port.
 callback - Callback called with (err)
 ]]--
 function ConnectionStream:createConnection(options, callback)
-  local opts = misc.merge({
+  local opts = utile.merge({
     id = self._id,
     token = self._token,
     guid = self._guid,

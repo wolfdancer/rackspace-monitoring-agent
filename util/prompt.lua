@@ -1,4 +1,4 @@
-local trim = require('./misc').trim
+local trim = require('utile').trim
 local async = require('async')
 
 --[[

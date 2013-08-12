@@ -21,6 +21,7 @@ local fmt = require('string').format
 local fsutil = require('../util/fs')
 local errors = require('../errors')
 local request = require('../protocol/request')
+local utile = require('utile')
 
 local code_cert
 if _G.TESTING_CERTS then
@@ -143,14 +144,14 @@ function ConnectionMessages:getUpgrade(version, client, callback)
 
     async.parallel({
       payload = function(callback)
-        local opts = misc.merge({
+        local opts = utile.merge({
           path = fmt('/upgrades/%s/%s', channel, item.payload),
           download = path.join(unverified_dir, item.payload)
         }, options)
         request.makeRequest(opts, callback)
       end,
       signature = function(callback)
-        local opts = misc.merge({
+        local opts = utile.merge({
           path = fmt('/upgrades/%s/%s', channel, item.signature),
           download = path.join(unverified_dir, item.signature)
         }, options)
@@ -169,11 +170,11 @@ function ConnectionMessages:getUpgrade(version, client, callback)
         async.parallel({
           function(callback)
             client:log(logging.INFO, fmt('Moving file to %s', filename_verified))
-            misc.copyFile(filename, filename_verified, callback)
+            utile.copyFile(filename, filename_verified, callback)
           end,
           function(callback)
             client:log(logging.INFO, fmt('Moving file to %s', filename_verified_sig))
-            misc.copyFile(filename_sig, filename_verified_sig, callback)
+            utile.copyFile(filename_sig, filename_verified_sig, callback)
           end
         }, function(err)
           if err then

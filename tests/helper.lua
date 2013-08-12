@@ -8,7 +8,7 @@ local json = require('json')
 
 local misc = require('/util/misc')
 local constants = require('constants')
-local vutils = require('virgo_utils')
+local utile = require('utile')
 
 local agent
 
@@ -39,7 +39,7 @@ local child
 
 local function start_server(callback)
   local data = ''
-  callback = misc.fireOnce(callback)
+  callback = utile.fireOnce(callback)
 
   local pprint = function(d)
     print('[* AEP *]: ' .. d)

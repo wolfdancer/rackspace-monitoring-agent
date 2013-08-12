@@ -55,11 +55,11 @@ local CheckResult = require('./base').CheckResult
 local Metric = require('./base').Metric
 local split = require('../util/misc').split
 local tableContains = require('../util/misc').tableContains
-local lastIndexOf = require('../util/misc').lastIndexOf
+local lastIndexOf = require('utile').lastIndexOf
 local constants = require('../util/constants')
 local loggingUtil = require('../util/logging')
 
-local toString = require('../util/misc').toString
+local toString = require('utile').toString
 
 local PluginCheck = ChildCheck:extend()
 
