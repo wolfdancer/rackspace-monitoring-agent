@@ -61,6 +61,7 @@ function BaseCheck:initialize(params)
   self._iid = 'id' .. randstr(8) -- internal id
   self._timer = nil
   self._cleared = false
+  self._running = false
   asserts.ok(self.getType, "no getType() function defined")
   self._log = loggingUtil.makeLogger(fmt('Check (%s)', self.getType()))
 
@@ -118,6 +119,15 @@ function BaseCheck:_runCheck()
   local fired = false
   local timeoutTimer
 
+  if self._running then
+    self._log(logging.INFO, fmt('check scheduled to run, and is already running %s', self:getSummary()))
+    process.nextTick(function()
+      self:emit('running')
+    end)
+    return
+  end
+
+  self._running = true
   self._timer = nil
   self:emit('run', self)
 
@@ -125,7 +135,9 @@ function BaseCheck:_runCheck()
     if fired then
       return
     end
+
     fired = true
+    self._running = false
 
     self._log(logging.DEBUG, fmt('check completed %s', self:getSummary()))
 
@@ -134,7 +146,7 @@ function BaseCheck:_runCheck()
       self:emit('completed', self, checkResult)
     end)
 
-    -- If this check has been not been cleared then reschedule
+    -- If this check has not been cleared then reschedule
     if self._cleared == false then
       self._log(logging.DEBUG, fmt('reschedule check %s', self:getSummary()))
       self:schedule()

@@ -19,6 +19,7 @@ local path = require('path')
 local os = require('os')
 local fs = require('fs')
 local async = require('async')
+local timer = require('timer')
 
 local fixtures = require('/tests/fixtures')
 local Check = require('/check')
@@ -533,6 +534,31 @@ exports['test_check_metrics_post_serialization'] = function(test, asserts)
     asserts.equals(serialized.params.metrics[1][2].swap_free.u, 'bytes')
     test.done()
   end)
+end
+
+exports['test_base_check_double_run'] = function(test, asserts)
+  local testcheck = BaseCheck:extend()
+  function testcheck:getType()
+    return "test"
+  end
+
+  function testcheck:initialize(params)
+    BaseCheck.initialize(self, params)
+  end
+
+  function testcheck:run(callback)
+    timer.setTimeout(5, callback)
+  end
+
+  local check = testcheck:new({id='foo', period=30})
+  
+  check:on('running', function()
+    check:clearSchedule()
+    test.done()
+  end)
+
+  check:schedule()
+  check:_runCheck()
 end
 
 return exports
