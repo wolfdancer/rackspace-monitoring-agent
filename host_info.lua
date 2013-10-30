@@ -396,6 +396,7 @@ info.CPUInfo = CPUInfo
 info.DiskInfo = DiskInfo
 info.MemoryInfo = MemoryInfo
 info.NetworkInfo = NetworkInfo
+info.SystemInfo = SystemInfo
 info.create = create
 info.debugInfo = debugInfo
 return info
