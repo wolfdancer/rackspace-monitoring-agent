@@ -33,11 +33,11 @@ end
 -- Connection Messages
 local ConnectionMessages = Emitter:extend()
 function ConnectionMessages:initialize(connectionStream)
+  self._lastFetchTime = 0
   self._connectionStream = connectionStream
   self:on('handshake_success', bind(ConnectionMessages.onHandshake, self))
   self:on('client_end', bind(ConnectionMessages.onClientEnd, self))
   self:on('message', bind(ConnectionMessages.onMessage, self))
-  self._lastFetchTime = 0
 end
 
 function ConnectionMessages:getStream()
@@ -127,8 +127,14 @@ function ConnectionMessages:getUpgrade(version, client, callback)
   local verified_dir = consts:get('DEFAULT_VERIFIED_BUNDLE_PATH')
   local unverified_binary_dir = consts:get('DEFAULT_UNVERIFIED_EXE_PATH')
   local verified_binary_dir = consts:get('DEFAULT_VERIFIED_EXE_PATH')
+  local s = sigar:new():sysinfo()
 
-  local function download_iter(item, callback)
+  -- Ignore upgrades on windows
+  if s.vendor_name:lower():find('windows') then
+    return callback()
+  end
+
+  local function download(item, callback)
     local options = {
       method = 'GET',
       host = client._host,
@@ -160,9 +166,9 @@ function ConnectionMessages:getUpgrade(version, client, callback)
       if err then
         return callback(err)
       end
-
       self:verify(filename, filename_sig, code_cert.codeCert, function(err)
         if err then
+          self:emit('upgrade_failed_verification')
           return callback(err)
         end
         client:log(logging.INFO, fmt('Signature verified %s (ok)', item.payload))
@@ -174,13 +180,24 @@ function ConnectionMessages:getUpgrade(version, client, callback)
           function(callback)
             client:log(logging.INFO, fmt('Moving file to %s', filename_verified_sig))
             misc.copyFile(filename_sig, filename_verified_sig, callback)
+          end,
+          function(callback)
+            client:log(logging.INFO, fmt('Modifying permissions'))
+            fs.chmod(filename_verified, string.format('%o', item.permissions), callback)
+          end,
+          function(callback)
+            client:log(logging.INFO, fmt('Removing downloaded temporary file: %s', filename))
+            fs.unlink(filename, callback)
+          end,
+          function(callback)
+            client:log(logging.INFO, fmt('Removing downloaded temporary file: %s', filename_sig))
+            fs.unlink(filename_sig, callback)
+          end,
+          function(callback)
+            self:emit('upgrade_pending')
+            callback()
           end
-        }, function(err)
-          if err then
-            return callback(err)
-          end
-          fs.chmod(filename_verified, string.format('%o', item.permissions), callback)
-        end)
+        }, callback)
       end)
     end)
   end
@@ -200,29 +217,20 @@ function ConnectionMessages:getUpgrade(version, client, callback)
     verified_binary_dir
   }
 
-  async.waterfall({
+  async.series({
     function(callback)
       async.forEach(directories, mkdirp, callback)
     end,
     function(callback)
-      local s = sigar:new():sysinfo()
       local binary_name = fmt('%s-%s-%s-monitoring-agent-%s', s.vendor, s.vendor_version, s.arch, version):lower()
       local binary_name_sig = fmt('%s.sig', binary_name)
       local bundle_files = {
-        [1] = {
-          payload = fmt('monitoring-%s.zip', version),
-          signature = fmt('monitoring-%s.zip.sig', version),
-          path = virgo_paths.get(virgo_paths.VIRGO_PATH_BUNDLE_DIR),
-          permissions = tonumber('644', 8)
-        },
-        [2] = {
-          payload = binary_name,
-          signature = binary_name_sig,
-          path = virgo_paths.get(virgo_paths.VIRGO_PATH_EXE_DIR),
-          permissions = tonumber('755', 8)
-        }
+        payload = binary_name,
+        signature = binary_name_sig,
+        path = virgo_paths.get(virgo_paths.VIRGO_PATH_EXE_DIR),
+        permissions = tonumber('755', 8)
       }
-      async.forEach(bundle_files, download_iter, callback)
+      download(bundle_files, callback)
     end
   }, function(err)
     if err then
