@@ -138,6 +138,36 @@ testcases['failed_num_fields'] = MockNumFields:new()
 
 testcases['fake_results'] = MySQLMock:new()
 
+local MockQueryData = MySQLMock:extend()
+local QueryData = nil
+local QueryRowOffset = 1
+local queries = {
+   ['show status'] = {
+      {'Uptime','2'},
+   }
+}
+function MockQueryData:mysql_query(conn, query)
+  QueryData = query
+  return 0
+end
+-- Need to mock out a new fetch row based on this query
+-- or maybe just mod the one above to conditionally return?
+function MockQueryData:mysql_fetch_row(results)
+  local i = QueryRowOffset
+  QueryRowOffset = i + 1
+  local res = queries[QueryData]
+  if res[i] ~= nil then
+    local key = res[i][1]
+    local val = res[i][2]
+    local rv = {}
+    rv[0] = ffi.new("char[?]", #key + 1, key)
+    rv[1] = ffi.new("char[?]", #val + 1, val)
+    return rv
+  end
+  return nil
+end
+testcases['test_multi_query'] = MockQueryData:new()
+
 exports.mock = function(clib)
 
   -- Handle case where mysqlclient isn't installed at all :(
@@ -157,7 +187,7 @@ exports.mock = function(clib)
       end
 
       return clib[key]
-     end    
+     end
   }
 
   local rv = {

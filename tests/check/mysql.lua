@@ -124,6 +124,23 @@ exports['test_mysql_row_parsing'] = function(test, asserts)
   end)
 end
 
+exports['test_mysql_multi_query'] = function(test, asserts)
+  setupTest('test_multi_query')
+  local check = MySQLCheck:new({id='foo', period=30, details={username='fooo'}})
+  asserts.is_nil(check._lastResult)
+
+  check:run(function(result)
+        asserts.not_nil(check._lastResult)
+        local m = result:getMetrics()
+        --- WTF
+        p(m)
+        asserts.equal(tonumber(m['core']['uptime']['v']), "2")
+
+  end)
+
+  test.done()
+end
+
 if os.type() == "win32" then
   exports = helper.skip_all(exports, os.type())
 end
