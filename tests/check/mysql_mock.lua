@@ -28,7 +28,7 @@ local RowOffset = 1
 
 function MySQLMock:mysql_init(conn)
   RowOffset = 1
-  return 1
+  return {}
 end
 function MySQLMock:mysql_close(conn)
   return
@@ -139,33 +139,74 @@ testcases['failed_num_fields'] = MockNumFields:new()
 testcases['fake_results'] = MySQLMock:new()
 
 local MockQueryData = MySQLMock:extend()
-local QueryData = nil
-local QueryRowOffset = 1
-local queries = {
-   ['show status'] = {
-      {'Uptime','2'},
-   }
+
+local MysqlResult = Object:extend()
+function MysqlResult:initialize(rows)
+  self.rows = rows
+  self.rowIndex = 1
+end
+
+function MysqlResult:count()
+  return #self.rows
+end
+
+function MysqlResult:fetchRow()
+  local rv = {}
+
+  local row = self.rows[self.rowIndex]
+
+  if not row then
+    return nil
+  end
+
+  local key = row[1]
+  local value = row[2]
+
+  rv[0] = ffi.new("char[?]", #key + 1, key)
+  rv[1] = ffi.new("char[?]", #value + 1, value)
+
+  self.rowIndex = self.rowIndex + 1
+
+  return rv
+end
+
+local QUERIES = {
+  ['show status'] = {
+    {'Uptime', '2'},
+  }
 }
-function MockQueryData:mysql_query(conn, query)
-  QueryData = query
+
+local HANDLES = {}
+local HANDLE_ID = 1
+
+function registerHandle(ctx)
+  HANDLES[ctx.id] = ctx
+end
+
+function MockQueryData.mysql_init()
+  local ctx = {}
+  ctx.id = HANDLE_ID
+  registerHandle(ctx)
+  HANDLE_ID = HANDLE_ID + 1
+  return ctx
+end
+
+function MockQueryData.mysql_query(conn, query)
+  conn.results = MysqlResult:new(QUERIES[query])
   return 0
 end
+
+function MockQueryData.mysql_use_result(conn)
+  return conn.results
+end
+
 -- Need to mock out a new fetch row based on this query
 -- or maybe just mod the one above to conditionally return?
-function MockQueryData:mysql_fetch_row(results)
-  local i = QueryRowOffset
-  QueryRowOffset = i + 1
-  local res = queries[QueryData]
-  if res[i] ~= nil then
-    local key = res[i][1]
-    local val = res[i][2]
-    local rv = {}
-    rv[0] = ffi.new("char[?]", #key + 1, key)
-    rv[1] = ffi.new("char[?]", #val + 1, val)
-    return rv
-  end
-  return nil
+function MockQueryData.mysql_fetch_row(results)
+  local row = results:fetchRow()
+  return row
 end
+
 testcases['test_multi_query'] = MockQueryData:new()
 
 exports.mock = function(clib)
@@ -190,11 +231,8 @@ exports.mock = function(clib)
      end
   }
 
-  local rv = {
-  }
-
+  local rv = {}
   setmetatable(rv, mt)
-
   return rv
 end
 

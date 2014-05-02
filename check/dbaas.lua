@@ -1,5 +1,5 @@
 --[[
-Copyright 2012 Rackspace
+Copyright 2014 Rackspace
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,11 +19,11 @@ local ffi = require('ffi')
 local fmt = require('string').format
 
 local SubProcCheck = require('./base').SubProcCheck
-local MySQLCheck = SubProcCheck:extend()
 local CheckResult = require('./base').CheckResult
 
+local DBaaSMysqlCheck = SubProcCheck:extend()
 
-function MySQLCheck:initialize(params)
+function DBaaSMysqlCheck:initialize(params)
   SubProcCheck.initialize(self, params)
 
   if params.details == nil then
@@ -38,8 +38,8 @@ function MySQLCheck:initialize(params)
   self.mysql_mycnf = params.details.mycnf and params.details.mycnf or nil
 end
 
-function MySQLCheck:getType()
-  return 'agent.mysql'
+function DBaaSMysqlCheck:getType()
+  return 'agent.dbaas_mysql'
 end
 
 local loadedCDEF = false
@@ -101,6 +101,55 @@ local function loadMySQL()
 
 end
 
+local function runQuery(conn, query, cr, clib, stat_map, callback)
+  rv = clib.mysql_query(conn, query)
+  if rv ~= 0 then
+    cr:setError(fmt('mysql_query "%s" failed: (%d) %s',
+                    query,
+                    clib.mysql_errno(conn),
+                    ffi.string(clib.mysql_error(conn))))
+    clib.mysql_close(conn)
+    callback(cr)
+    return
+  end
+
+  local result = clib.mysql_use_result(conn)
+  if result == nil then
+    cr:setError(fmt('mysql_use_result failed: (%d) %s',
+                    clib.mysql_errno(conn),
+                    ffi.string(clib.mysql_error(conn))))
+    clib.mysql_close(conn)
+    callback(cr)
+    return
+  end
+
+  local nfields = clib.mysql_num_fields(result)
+  if nfields ~= 2 then
+    cr:setError(fmt('mysql_num_fields failed: expected 2 fields, but got %i',
+                    nfields))
+    clib.mysql_free_result(result)
+    clib.mysql_close(conn)
+    callback(cr)
+    return
+  end
+
+  while true do
+    local r = clib.mysql_fetch_row(result)
+    if r == nil then
+      break
+    end
+    local keyname = ffi.string(r[0])
+    local kstat = stat_map[keyname]
+    if kstat ~= nil then
+      -- TODO: would be nice to use mysql native types here?
+      local val = ffi.string(r[1])
+      cr:addMetric(kstat.alias, nil, kstat.type, val, rawget(kstat, 'unit'))
+    end
+  end
+
+  callback(cr)
+end
+
 -- List of MySQL Stats that we export, along with their metric type.
 local stat_map = {
   Aborted_clients = { type = 'uint64', alias = 'core.aborted_clients', unit = 'clients' },
@@ -136,7 +185,7 @@ local stat_map = {
   Qcache_total_blocks = { type = 'uint64', alias = 'qcache.total_blocks', unit = 'blocks'},
 }
 
-function MySQLCheck:_runCheckInChild(callback)
+function DBaaSMysqlCheck:_runCheckInChild(callback)
   local cr = CheckResult:new(self, {})
 
   local mysqlexact = {
@@ -157,8 +206,8 @@ function MySQLCheck:_runCheckInChild(callback)
 
   local osexts = {
     '', -- default to no os extension
-    '.16', 
-    '.17', 
+    '.16',
+    '.17',
     '.18'
   }
 
@@ -230,55 +279,9 @@ function MySQLCheck:_runCheckInChild(callback)
     return
   end
 
-  rv = clib.mysql_query(conn, "show status")
-  if rv ~= 0 then
-    cr:setError(fmt('mysql_query "show status" failed: (%d) %s',
-                    clib.mysql_errno(conn),
-                    ffi.string(clib.mysql_error(conn))))
-    clib.mysql_close(conn)
-    callback(cr)
-    return
-  end
-
-  local result = clib.mysql_use_result(conn)
-  if result == nil then
-    cr:setError(fmt('mysql_use_result failed: (%d) %s',
-                    clib.mysql_errno(conn),
-                    ffi.string(clib.mysql_error(conn))))
-    clib.mysql_close(conn)
-    callback(cr)
-    return
-  end
-
-  local nfields = clib.mysql_num_fields(result)
-  if nfields ~= 2 then
-    cr:setError(fmt('mysql_num_fields failed: expected 2 fields, but got %i',
-                    nfields))
-    clib.mysql_free_result(result)
-    clib.mysql_close(conn)
-    callback(cr)
-    return
-  end
-
-  while true do
-    local r = clib.mysql_fetch_row(result)
-    if r == nil then
-      break
-    end
-    local keyname = ffi.string(r[0])
-    local kstat = stat_map[keyname]
-    if kstat ~= nil then
-      -- TODO: would be nice to use mysql native types here?
-      local val = ffi.string(r[1])
-      cr:addMetric(kstat.alias, nil, kstat.type, val, rawget(kstat, 'unit'))
-    end
-  end
-
-  -- TOOD: status message
-  callback(cr)
-  return
+  runQuery(conn, "show status", cr, clib, stat_map, callback)
 end
 
 local exports = {}
-exports.MySQLCheck = MySQLCheck
+exports.DBaaSMysqlCheck = DBaaSMysqlCheck
 return exports
