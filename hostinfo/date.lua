@@ -14,15 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --]]
 
-return {
-  require('./cpu'),
-  require('./disk'),
-  require('./filesystem'),
-  require('./memory'),
-  require('./network'),
-  require('./nil'),
-  require('./procs'),
-  require('./system'),
-  require('./who'),
-  require('./date')
-}
+local HostInfo = require('./base').HostInfo
+
+local table = require('table')
+local os = require('os')
+
+--[[ Date ]]--
+local Date = HostInfo:extend()
+function Date:initialize()
+  HostInfo.initialize(self)
+  local it = os.date('%H:%M:%S %Y %m %d %Z'):gmatch('%S+')
+  local fields = {}
+  fields.time = it()
+  fields.date = {}
+  fields.date.year = it()
+  fields.date.month = it()
+  fields.date.day = it()
+  fields.timezone = it()
+  table.insert(self._params, fields)
+end
+
+function Date:getType()
+  return 'DATE'
+end
+
+return Date
+
