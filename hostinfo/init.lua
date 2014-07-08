@@ -43,6 +43,10 @@ local HOST_INFO_TYPES = CLASS_INFO.types
 
 --[[ NilInfo ]]--
 local NilInfo = HostInfo:extend()
+function NilInfo:initialize()
+  HostInfo.initialize(self)
+  self._error = 'Agent does not support this Host Info type'
+end
 
 --[[ Factory ]]--
 local function create(infoType)
