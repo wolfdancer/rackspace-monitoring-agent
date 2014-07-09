@@ -24,5 +24,6 @@ return {
   require('./procs'),
   require('./system'),
   require('./who'),
-  require('./date')
+  require('./date'),
+  require('./sysctl')
 }
