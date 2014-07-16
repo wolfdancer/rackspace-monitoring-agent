@@ -34,14 +34,14 @@ exports['test_handshake_timeout'] = function(test, asserts)
     tls = { rejectUnauthorized = false }
   }
 
-  endpoints = { Endpoint:new(TESTING_AGENT_ENDPOINTS[1]) }
+  endpoints = { Endpoint:new('127.0.0.1:4444') }
 
   async.series({
     function(callback)
       AEP = TimeoutServer:new({
         includeTimeouts = false,
       })
-      AEP:listen(50041, '127.0.0.1', callback)
+      AEP:listen(4444, '127.0.0.1', callback)
     end,
     function(callback)
       client = ConnectionStream:new('id', 'token', 'guid', false, options)
