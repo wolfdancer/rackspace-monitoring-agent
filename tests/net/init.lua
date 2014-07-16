@@ -8,6 +8,16 @@ local consts = require('/constants')
 local Endpoint = require('../../endpoint').Endpoint
 local path = require('path')
 local os = require('os')
+local Server = require('../server').Server
+
+local TimeoutServer = Server:extend()
+function TimeoutServer:initialize(options)
+  Server.initialize(self, options)
+end
+
+function TimeoutServer:_onLineProtocol(client, line)
+  -- Timeout All Requests
+end
 
 local exports = {}
 
@@ -25,23 +35,23 @@ exports['test_handshake_timeout'] = function(test, asserts)
   }
 
   endpoints = { Endpoint:new(TESTING_AGENT_ENDPOINTS[1]) }
-  client = ConnectionStream:new('id', 'token', 'guid', false, options)
 
   async.series({
     function(callback)
-      local serverOptions = {
-        env = { RATE_LIMIT = 0 } 
-      }
-      AEP = helper.start_server(serverOptions, callback)
+      AEP = TimeoutServer:new({
+        includeTimeouts = false,
+      })
+      AEP:listen(50041, '127.0.0.1', callback)
     end,
     function(callback)
+      client = ConnectionStream:new('id', 'token', 'guid', false, options)
       client:createConnections(endpoints, callback)
     end,
     function(callback)
       client:once('reconnect', callback)
     end
   }, function()
-    AEP:kill(9)
+    AEP:close()
     test.done()
   end)
 end
