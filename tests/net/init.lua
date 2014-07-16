@@ -10,9 +10,44 @@ local path = require('path')
 local os = require('os')
 
 local exports = {}
-local AEP
+
+exports['test_handshake_timeout'] = function(test, asserts)
+  local AEP, options, endpoints, client
+
+  if os.type() == "win32" then
+    test.skip("Skip test_handshake_timeout until a suitable SIGUSR1 replacement is used in runner.py")
+    return nil
+  end
+
+  options = {
+    datacenter = 'test',
+    tls = { rejectUnauthorized = false }
+  }
+
+  endpoints = { Endpoint:new(TESTING_AGENT_ENDPOINTS[1]) }
+  client = ConnectionStream:new('id', 'token', 'guid', false, options)
+
+  async.series({
+    function(callback)
+      local serverOptions = {
+        env = { RATE_LIMIT = 0 } 
+      }
+      AEP = helper.start_server(serverOptions, callback)
+    end,
+    function(callback)
+      client:createConnections(endpoints, callback)
+    end,
+    function(callback)
+      client:once('reconnect', callback)
+    end
+  }, function()
+    AEP:kill(9)
+    test.done()
+  end)
+end
 
 exports['test_reconnects'] = function(test, asserts)
+  local AEP
 
   if os.type() == "win32" then
     test.skip("Skip test_reconnects until a suitable SIGUSR1 replacement is used in runner.py")
@@ -103,13 +138,9 @@ exports['test_upgrades'] = function(test, asserts)
     end,
     function(callback)
       client = ConnectionStream:new('id', 'token', 'guid', false, options)
-      client:on('handshake_success', misc.nCallbacks(callback, 3))
+      client:once('error', callback)
       client:createConnections(endpoints, function() end)
     end,
-    function(callback)
-      client:on('upgrade_done', callback)
-      client:getUpgrade():forceUpgradeCheck({test = true})
-    end
   }, function()
     AEP:kill(9)
     client:done()
